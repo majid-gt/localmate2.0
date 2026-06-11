@@ -1,0 +1,13 @@
+# Python virtual environment
+backend/venv/
+**/__pycache__/
+**/.pytest_cache/
+backend/uploads/
+backend/*.db
+
+# Flutter build and packages
+mobile/.dart_tool/
+mobile/.packages
+mobile/.pub/
+mobile/build/
+mobile/*.lock

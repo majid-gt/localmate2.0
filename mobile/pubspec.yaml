@@ -1,0 +1,30 @@
+name: localmate
+description: A mobile application to find trusted local services recommended by residents.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  flutter_riverpod: ^2.5.1
+  go_router: ^13.2.0
+  dio: ^5.4.1
+  google_fonts: ^6.1.0
+  geolocator: ^11.0.0
+  image_picker: ^1.0.7
+  shared_preferences: ^2.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
