@@ -297,7 +297,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         "/users/me",
         data: {
           "name": name,
-          "email": email,
+          "email": email.isNotEmpty ? email : null,
           if (finalPhotoUrl != null) "profile_photo_url": finalPhotoUrl,
         },
       );
