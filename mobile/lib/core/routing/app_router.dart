@@ -5,9 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 // Import screens when created
 // For compilation safety, we will define placeholder widgets/routes
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/profile_screen.dart';
 import '../../features/listings/presentation/listings_screen.dart';
 import '../../features/listings/presentation/add_listing_screen.dart';
 import '../../features/listings/presentation/listing_detail_screen.dart';
+import '../../features/listings/presentation/my_listings_screen.dart';
+import '../../features/listings/presentation/saved_listings_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -19,7 +22,10 @@ final GoRouter appRouter = GoRouter(
     
     // Allow users to search/browse listings without login (public)
     // Only redirect to login if attempting to create/modify listing or review
-    final requiresAuth = state.matchedLocation.startsWith('/listings/add');
+    final requiresAuth = state.matchedLocation.startsWith('/listings/add') ||
+                         state.matchedLocation.startsWith('/profile') ||
+                         state.matchedLocation.startsWith('/my-listings') ||
+                         state.matchedLocation.startsWith('/saved-listings');
     
     if (token == null && requiresAuth) {
       return '/login';
@@ -39,6 +45,18 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/login',
       builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/profile',
+      builder: (context, state) => const ProfileScreen(),
+    ),
+    GoRoute(
+      path: '/my-listings',
+      builder: (context, state) => const MyListingsScreen(),
+    ),
+    GoRoute(
+      path: '/saved-listings',
+      builder: (context, state) => const SavedListingsScreen(),
     ),
     GoRoute(
       path: '/listings/add',

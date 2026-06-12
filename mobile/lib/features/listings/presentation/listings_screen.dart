@@ -33,16 +33,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
     setState(() => _isLoggedIn = token != null);
   }
 
-  Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('access_token');
-    setState(() => _isLoggedIn = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Logged out successfully")),
-      );
-    }
-  }
 
   Future<void> _fetchCategories() async {
     try {
@@ -90,8 +80,11 @@ class _ListingsScreenState extends State<ListingsScreen> {
               onPressed: () => context.push('/listings/add').then((_) => _fetchListings()),
             ),
             IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: _logout,
+              icon: const Icon(Icons.account_circle_outlined, color: Color(0xFF6366F1)),
+              onPressed: () => context.push('/profile').then((_) {
+                _checkLoginStatus();
+                _fetchListings();
+              }),
             ),
           ] else
             TextButton.icon(

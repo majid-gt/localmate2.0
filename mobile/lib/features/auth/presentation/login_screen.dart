@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/network/dio_client.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -70,8 +70,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('access_token', token);
 
         if (mounted) {
-          // Navigate back or to home screen
-          Navigator.pushReplacementNamed(context, '/');
+          // Navigate back or to home screen using GoRouter
+          context.go('/');
         }
       }
     } catch (e) {
@@ -100,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('access_token', token);
 
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/');
+          context.go('/');
         }
       }
     } catch (e) {

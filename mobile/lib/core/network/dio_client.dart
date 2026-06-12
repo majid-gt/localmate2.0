@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class DioClient {
   final Dio dio;
-  static const String baseUrl = "http://10.0.2.2:8000/api/v1"; // 10.0.2.2 points to local host from android emulator
+  static const String baseUrl = "http://localhost:8000/api/v1"; // 10.0.2.2 points to local host from android emulator
 
   DioClient() : dio = Dio(BaseOptions(
     baseUrl: baseUrl,
