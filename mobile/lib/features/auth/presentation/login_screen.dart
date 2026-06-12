@@ -71,7 +71,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (mounted) {
           // Navigate back or to home screen using GoRouter
-          context.go('/');
+          if (context.canPop()) {
+            context.pop(true);
+          } else {
+            context.go('/');
+          }
         }
       }
     } catch (e) {
@@ -100,7 +104,11 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('access_token', token);
 
         if (mounted) {
-          context.go('/');
+          if (context.canPop()) {
+            context.pop(true);
+          } else {
+            context.go('/');
+          }
         }
       }
     } catch (e) {

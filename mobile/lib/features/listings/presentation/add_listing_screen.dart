@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/network/dio_client.dart';
 
 class AddListingScreen extends StatefulWidget {
@@ -25,6 +27,9 @@ class _AddListingScreenState extends State<AddListingScreen> {
   List<dynamic> _categories = [];
   bool _isLoading = false;
 
+  final ImagePicker _picker = ImagePicker();
+  List<XFile> _pickedImages = [];
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +47,19 @@ class _AddListingScreenState extends State<AddListingScreen> {
     }
   }
 
+  Future<void> _pickImages() async {
+    try {
+      final List<XFile> images = await _picker.pickMultiImage();
+      if (images.isNotEmpty) {
+        setState(() {
+          _pickedImages.addAll(images);
+        });
+      }
+    } catch (e) {
+      debugPrint("Error picking images: $e");
+    }
+  }
+
   Future<void> _submitListing() async {
     if (!_formKey.currentState!.validate() || _selectedCategoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -53,8 +71,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Prepare form data
-      final formData = FormData.fromMap({
+      // Prepare form data map
+      final Map<String, dynamic> dataMap = {
         "name": _nameController.text.trim(),
         "category_id": _selectedCategoryId,
         "owner_name": _ownerNameController.text.trim(),
@@ -66,8 +84,20 @@ class _AddListingScreenState extends State<AddListingScreen> {
         "working_days_json": "[1, 2, 3, 4, 5]", // Mon-Fri
         "working_hours": _workingHoursController.text.trim(),
         "description": _descriptionController.text.trim(),
-      });
+      };
 
+      // Convert picked images to MultipartFiles
+      if (_pickedImages.isNotEmpty) {
+        final List<MultipartFile> multipartImages = [];
+        for (var image in _pickedImages) {
+          multipartImages.add(
+            await MultipartFile.fromFile(image.path, filename: image.name),
+          );
+        }
+        dataMap["images"] = multipartImages;
+      }
+
+      final formData = FormData.fromMap(dataMap);
       final response = await _dio.post("/listings/", data: formData);
 
       if (response.statusCode == 201) {
@@ -240,6 +270,78 @@ class _AddListingScreenState extends State<AddListingScreen> {
                       controller: _descriptionController,
                       maxLines: 3,
                       decoration: const InputDecoration(labelText: "Description / Notes (Optional)"),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      "Upload Service Images (Optional)",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    if (_pickedImages.isNotEmpty) ...[
+                      SizedBox(
+                        height: 100,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _pickedImages.length,
+                          itemBuilder: (context, idx) {
+                            final image = _pickedImages[idx];
+                            return Container(
+                              margin: const EdgeInsets.only(right: 8.0),
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Stack(
+                                children: [
+                                  Image.file(
+                                    File(image.path),
+                                    fit: BoxFit.cover,
+                                    width: 100,
+                                    height: 100,
+                                  ),
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _pickedImages.removeAt(idx);
+                                        });
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.black54,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    OutlinedButton.icon(
+                      onPressed: _pickImages,
+                      icon: const Icon(Icons.add_photo_alternate_outlined, color: Color(0xFF6366F1)),
+                      label: const Text("Select Images from Gallery", style: TextStyle(color: Color(0xFF6366F1))),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        side: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+                      ),
                     ),
                     const SizedBox(height: 32),
                     ElevatedButton(

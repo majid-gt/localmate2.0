@@ -157,6 +157,12 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
+  String _getFullImageUrl(String path) {
+    if (path.startsWith("http")) return path;
+    final rootHost = DioClient.baseUrl.replaceAll("/api/v1", "");
+    return "$rootHost$path";
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -190,6 +196,33 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Image Carousel at the top
+            if (listing['images'] != null && (listing['images'] as List).isNotEmpty) ...[
+              SizedBox(
+                height: 220,
+                child: PageView.builder(
+                  itemCount: (listing['images'] as List).length,
+                  itemBuilder: (context, idx) {
+                    final imgUrl = _getFullImageUrl(listing['images'][idx]['image_url']);
+                    return Image.network(
+                      imgUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey.shade200,
+                          child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                        );
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(child: CircularProgressIndicator());
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
             // Top Section (Main Details Card)
             Container(
               color: Colors.grey.shade50,
