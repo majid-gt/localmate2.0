@@ -86,11 +86,15 @@ class ListingRepository:
         radius_km: Optional[float] = None,
         sort_by: str = "created_at",
         limit: int = 20,
-        offset: int = 0
+        offset: int = 0,
+        contributor_id: Optional[str] = None
     ) -> Tuple[List[Tuple[Listing, float]], int]:
         
         query = db.query(Listing).filter(Listing.status == "active")
         
+        if contributor_id:
+            query = query.filter(Listing.contributor_id == contributor_id)
+            
         if category_id:
             query = query.filter(Listing.category_id == category_id)
             

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../core/network/dio_client.dart';
 
 class ListingsScreen extends StatefulWidget {
@@ -18,6 +19,9 @@ class _ListingsScreenState extends State<ListingsScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = false;
   bool _isLoggedIn = false;
+  bool _nearbySelected = false;
+  double? _currentLatitude;
+  double? _currentLongitude;
 
   @override
   void initState() {
@@ -33,7 +37,6 @@ class _ListingsScreenState extends State<ListingsScreen> {
     setState(() => _isLoggedIn = token != null);
   }
 
-
   Future<void> _fetchCategories() async {
     try {
       final response = await _dio.get("/categories/");
@@ -45,17 +48,101 @@ class _ListingsScreenState extends State<ListingsScreen> {
     }
   }
 
+  Future<Position?> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return null;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return null;
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      return null;
+    } 
+
+    try {
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 5),
+      );
+    } catch (e) {
+      debugPrint("Error getting GPS location: $e");
+      try {
+        return await Geolocator.getLastKnownPosition();
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+
+  Future<void> _toggleNearby(bool selected) async {
+    if (selected) {
+      setState(() {
+        _isLoading = true;
+        _nearbySelected = true;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Getting current location..."),
+          duration: Duration(milliseconds: 800),
+        ),
+      );
+
+      final position = await _getCurrentLocation();
+      if (!mounted) return;
+      if (position != null) {
+        setState(() {
+          _currentLatitude = position.latitude;
+          _currentLongitude = position.longitude;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Could not retrieve GPS location. Using default location."),
+          ),
+        );
+        setState(() {
+          _currentLatitude = 17.3850;
+          _currentLongitude = 78.4867;
+        });
+      }
+      _fetchListings(query: _searchController.text, categoryId: _selectedCategoryId);
+    } else {
+      setState(() {
+        _nearbySelected = false;
+        _currentLatitude = null;
+        _currentLongitude = null;
+      });
+      _fetchListings(query: _searchController.text, categoryId: _selectedCategoryId);
+    }
+  }
+
   Future<void> _fetchListings({String? query, int? categoryId}) async {
     setState(() => _isLoading = true);
     try {
       final Map<String, dynamic> params = {};
-      if (query != null && query.isNotEmpty) params['q'] = query;
-      if (categoryId != null) params['category_id'] = categoryId;
+      final q = query ?? _searchController.text;
+      final catId = categoryId ?? _selectedCategoryId;
+
+      if (q.isNotEmpty) params['q'] = q;
+      if (catId != null) params['category_id'] = catId;
       
-      // For nearby sorting demonstration, send Hyderabad center coordinates
-      params['latitude'] = 17.3850;
-      params['longitude'] = 78.4867;
-      params['sort_by'] = 'distance';
+      if (_nearbySelected) {
+        params['latitude'] = _currentLatitude ?? 17.3850;
+        params['longitude'] = _currentLongitude ?? 78.4867;
+        params['radius_km'] = 3.0;
+        params['sort_by'] = 'distance';
+      }
 
       final response = await _dio.get("/listings/", queryParameters: params);
       if (response.statusCode == 200) {
@@ -125,9 +212,27 @@ class _ListingsScreenState extends State<ListingsScreen> {
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              itemCount: _categories.length + 1,
+              itemCount: _categories.length + 2,
               itemBuilder: (context, index) {
                 if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: ChoiceChip(
+                      avatar: Icon(
+                        Icons.my_location_rounded,
+                        size: 16,
+                        color: _nearbySelected ? Colors.white : const Color(0xFF6366F1),
+                      ),
+                      label: const Text("Nearby (< 3 km)"),
+                      selected: _nearbySelected,
+                      selectedColor: const Color(0xFF6366F1),
+                      onSelected: (selected) {
+                        _toggleNearby(selected);
+                      },
+                    ),
+                  );
+                }
+                if (index == 1) {
                   final isSelected = _selectedCategoryId == null;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8.0),
@@ -141,7 +246,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                     ),
                   );
                 }
-                final category = _categories[index - 1];
+                final category = _categories[index - 2];
                 final isSelected = _selectedCategoryId == category['id'];
                 return Padding(
                   padding: const EdgeInsets.only(right: 8.0),

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 // For compilation safety, we will define placeholder widgets/routes
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/profile_screen.dart';
+import '../../features/auth/presentation/profile_create_screen.dart';
 import '../../features/listings/presentation/listings_screen.dart';
 import '../../features/listings/presentation/add_listing_screen.dart';
 import '../../features/listings/presentation/listing_detail_screen.dart';
@@ -51,8 +52,22 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const ProfileScreen(),
     ),
     GoRoute(
+      path: '/profile/create',
+      builder: (context, state) => const ProfileCreateScreen(),
+    ),
+    GoRoute(
+      path: '/profile/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return ProfileScreen(userId: id);
+      },
+    ),
+    GoRoute(
       path: '/my-listings',
-      builder: (context, state) => const MyListingsScreen(),
+      builder: (context, state) {
+        final userId = state.uri.queryParameters['userId'];
+        return MyListingsScreen(userId: userId);
+      },
     ),
     GoRoute(
       path: '/saved-listings',

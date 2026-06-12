@@ -4,7 +4,8 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/theme/app_theme.dart';
 
 class MyListingsScreen extends StatefulWidget {
-  const MyListingsScreen({super.key});
+  final String? userId;
+  const MyListingsScreen({super.key, this.userId});
 
   @override
   State<MyListingsScreen> createState() => _MyListingsScreenState();
@@ -28,7 +29,9 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
       _errorMessage = null;
     });
     try {
-      final response = await _dio.get("/listings/my-listings");
+      final response = widget.userId == null
+          ? await _dio.get("/listings/my-listings")
+          : await _dio.get("/listings/", queryParameters: {"contributor_id": widget.userId});
       if (response.statusCode == 200) {
         setState(() {
           _myListings = response.data;
@@ -56,6 +59,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
         "status": nextStatus,
       });
 
+      if (!mounted) return;
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Listing set to $nextStatus successfully!")),
@@ -63,6 +67,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
         _fetchMyListings();
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Failed to update listing status.")),
       );
@@ -74,9 +79,11 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final isMe = widget.userId == null;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("My Recommendations"),
+        title: Text(isMe ? "My Recommendations" : "Recommendations"),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -118,16 +125,20 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              "Help fellow residents discover trusted services by listing them here.",
+                              isMe
+                                  ? "Help fellow residents discover trusted services by listing them here."
+                                  : "This contributor hasn't recommended any services yet.",
                               textAlign: TextAlign.center,
                               style: TextStyle(color: Colors.grey.shade500),
                             ),
-                            const SizedBox(height: 24),
-                            ElevatedButton.icon(
-                              icon: const Icon(Icons.add),
-                              label: const Text("Recommend Service"),
-                              onPressed: () => context.push('/listings/add').then((_) => _fetchMyListings()),
-                            ),
+                            if (isMe) ...[
+                              const SizedBox(height: 24),
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.add),
+                                label: const Text("Recommend Service"),
+                                onPressed: () => context.push('/listings/add').then((_) => _fetchMyListings()),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -209,24 +220,26 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                                         "Owner: ${listing['owner_phone']}",
                                         style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                                       ),
-                                      const Spacer(),
-                                      // Toggle Switch / Action
-                                      TextButton.icon(
-                                        icon: Icon(
-                                          isActive ? Icons.block : Icons.check_circle_outline,
-                                          size: 16,
-                                          color: isActive ? Colors.orange.shade700 : AppTheme.primaryColor,
-                                        ),
-                                        label: Text(
-                                          isActive ? "Deactivate" : "Activate",
-                                          style: TextStyle(
+                                      if (isMe) ...[
+                                        const Spacer(),
+                                        // Toggle Switch / Action
+                                        TextButton.icon(
+                                          icon: Icon(
+                                            isActive ? Icons.block : Icons.check_circle_outline,
+                                            size: 16,
                                             color: isActive ? Colors.orange.shade700 : AppTheme.primaryColor,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
                                           ),
+                                          label: Text(
+                                            isActive ? "Deactivate" : "Activate",
+                                            style: TextStyle(
+                                              color: isActive ? Colors.orange.shade700 : AppTheme.primaryColor,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          onPressed: () => _toggleListingStatus(listing['id'], listing['status']),
                                         ),
-                                        onPressed: () => _toggleListingStatus(listing['id'], listing['status']),
-                                      ),
+                                      ],
                                     ],
                                   ),
                                 ],

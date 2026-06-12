@@ -66,15 +66,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final token = response.data['access_token'];
+        final isNewUser = response.data['is_new_user'] ?? false;
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('access_token', token);
 
         if (mounted) {
-          // Navigate back or to home screen using GoRouter
-          if (context.canPop()) {
-            context.pop(true);
+          if (isNewUser) {
+            context.go('/profile/create');
           } else {
-            context.go('/');
+            // Navigate back or to home screen using GoRouter
+            if (context.canPop()) {
+              context.pop(true);
+            } else {
+              context.go('/');
+            }
           }
         }
       }
@@ -100,14 +105,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final token = response.data['access_token'];
+        final isNewUser = response.data['is_new_user'] ?? false;
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('access_token', token);
 
         if (mounted) {
-          if (context.canPop()) {
-            context.pop(true);
+          if (isNewUser) {
+            context.go('/profile/create');
           } else {
-            context.go('/');
+            if (context.canPop()) {
+              context.pop(true);
+            } else {
+              context.go('/');
+            }
           }
         }
       }

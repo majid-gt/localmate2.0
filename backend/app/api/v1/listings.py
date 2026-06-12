@@ -106,11 +106,13 @@ def search_listings(
     sort_by: str = "created_at",
     limit: int = 20,
     offset: int = 0,
+    contributor_id: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     results, _ = ListingRepository.search_listings(
         db, q=q, category_id=category_id, lat=latitude, lng=longitude,
-        radius_km=radius_km, sort_by=sort_by, limit=limit, offset=offset
+        radius_km=radius_km, sort_by=sort_by, limit=limit, offset=offset,
+        contributor_id=contributor_id
     )
     
     # Map results and inject calculated distances

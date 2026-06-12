@@ -259,7 +259,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF6366F1).withOpacity(0.1),
+                          color: const Color(0x1A6366F1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -342,24 +342,64 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                   if (listing['contributor'] != null) ...[
                     const Text("Recommended By", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade200),
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey.shade200),
                       ),
-                      child: Row(
-                        children: [
-                          const CircleAvatar(child: Icon(Icons.face)),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () {
+                          final contributorId = listing['contributor']['id'] ?? listing['contributor_id'];
+                          if (contributorId != null) {
+                            context.push('/profile/$contributorId');
+                          }
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
                             children: [
-                              Text(listing['contributor']['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                              const Text("Local Resident Contributor"),
+                              const CircleAvatar(
+                                backgroundColor: Color(0xFFEEF2F6),
+                                child: Icon(Icons.face, color: Color(0xFF6366F1)),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      listing['contributor']['name'],
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                    ),
+                                    const Text(
+                                      "Local Resident Contributor",
+                                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (listing['contributor']['phone_number'] != null)
+                                IconButton(
+                                  icon: const Icon(Icons.call, color: Colors.green),
+                                  onPressed: () async {
+                                    final phone = listing['contributor']['phone_number'];
+                                    final telUri = Uri.parse("tel:$phone");
+                                    if (await canLaunchUrl(telUri)) {
+                                      await launchUrl(telUri);
+                                    } else {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text("Calling contributor: $phone")),
+                                        );
+                                      }
+                                    }
+                                  },
+                                ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ],

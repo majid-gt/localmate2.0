@@ -5,7 +5,8 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/theme/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? userId;
+  const ProfileScreen({super.key, this.userId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -30,7 +31,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      final response = await _dio.get("/users/me");
+      final response = widget.userId != null
+          ? await _dio.get("/users/${widget.userId}")
+          : await _dio.get("/users/me");
       if (response.statusCode == 200) {
         setState(() {
           _user = response.data;
@@ -108,10 +111,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMe = widget.userId == null;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("My Profile"),
+        title: Text(isMe ? "My Profile" : "Contributor Profile"),
         elevation: 0,
       ),
       body: _isLoading
@@ -148,12 +152,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: AppTheme.primaryColor.withOpacity(0.2),
+                                  color: AppTheme.primaryColor.withAlpha(51),
                                   width: 4,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: Colors.black.withAlpha(26),
                                     blurRadius: 10,
                                     spreadRadius: 1,
                                   )
@@ -295,35 +299,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             ListTile(
                               leading: const Icon(Icons.storefront_rounded, color: AppTheme.primaryColor),
-                              title: const Text("My Recommendations"),
-                              subtitle: const Text("Manage services you recommended"),
+                              title: Text(isMe ? "My Recommendations" : "Recommendations"),
+                              subtitle: Text(isMe ? "Manage services you recommended" : "View services they recommended"),
                               trailing: const Icon(Icons.chevron_right),
-                              onTap: () => context.push('/my-listings'),
+                              onTap: () => context.push(isMe ? '/my-listings' : '/my-listings?userId=${widget.userId}'),
                             ),
-                            const Divider(height: 1),
-                            ListTile(
-                              leading: const Icon(Icons.bookmark_outline_rounded, color: AppTheme.primaryColor),
-                              title: const Text("Saved Bookmarks"),
-                              subtitle: const Text("Quickly view pinned services"),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () => context.push('/saved-listings'),
-                            ),
+                            if (isMe) ...[
+                              const Divider(height: 1),
+                              ListTile(
+                                leading: const Icon(Icons.bookmark_outline_rounded, color: AppTheme.primaryColor),
+                                title: const Text("Saved Bookmarks"),
+                                subtitle: const Text("Quickly view pinned services"),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () => context.push('/saved-listings'),
+                              ),
+                            ],
                           ],
                         ),
                       ),
                       const SizedBox(height: 32),
 
                       // Logout Button
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.logout, color: Colors.red),
-                        label: const Text("Log Out", style: TextStyle(color: Colors.red)),
-                        onPressed: _logout,
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
-                          side: const BorderSide(color: Colors.red, width: 1.5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      if (isMe) ...[
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.logout, color: Colors.red),
+                          label: const Text("Log Out", style: TextStyle(color: Colors.red)),
+                          onPressed: _logout,
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            side: const BorderSide(color: Colors.red, width: 1.5),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

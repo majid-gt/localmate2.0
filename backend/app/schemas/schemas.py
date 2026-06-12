@@ -111,7 +111,7 @@ class ListingResponse(ListingBase):
 
 class ListingDetailedResponse(ListingResponse):
     category: CategoryResponse
-    contributor: Optional[UserBase] = None
+    contributor: Optional[UserResponse] = None
 
     class Config:
         from_attributes = True
