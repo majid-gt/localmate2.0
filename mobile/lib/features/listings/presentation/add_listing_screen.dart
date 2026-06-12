@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/theme/app_theme.dart';
 
 class AddListingScreen extends StatefulWidget {
   const AddListingScreen({super.key});
@@ -22,6 +24,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _workingHoursController = TextEditingController(text: "9:00 AM - 6:00 PM");
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _latitudeController = TextEditingController();
+  final TextEditingController _longitudeController = TextEditingController();
 
   int? _selectedCategoryId;
   List<dynamic> _categories = [];
@@ -33,6 +37,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
   @override
   void initState() {
     super.initState();
+    _latitudeController.text = "17.3850";
+    _longitudeController.text = "78.4867";
     _fetchCategories();
   }
 
@@ -47,7 +53,53 @@ class _AddListingScreenState extends State<AddListingScreen> {
     }
   }
 
-  Future<void> _pickImages() async {
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: AppTheme.primaryColor),
+                title: const Text("Take Photo with Camera"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromCamera();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: AppTheme.primaryColor),
+                title: const Text("Choose from Gallery"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImagesFromGallery();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImageFromCamera() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+      if (image != null) {
+        setState(() {
+          _pickedImages.add(image);
+        });
+      }
+    } catch (e) {
+      debugPrint("Error capturing image: $e");
+    }
+  }
+
+  Future<void> _pickImagesFromGallery() async {
     try {
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
@@ -56,7 +108,60 @@ class _AddListingScreenState extends State<AddListingScreen> {
         });
       }
     } catch (e) {
-      debugPrint("Error picking images: $e");
+      debugPrint("Error picking gallery images: $e");
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _isLoading = true);
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Location services are disabled. Please enable them.")),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Location permissions are denied.")),
+          );
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Location permissions are permanently denied.")),
+        );
+        setState(() => _isLoading = false);
+        return;
+      } 
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() {
+        _latitudeController.text = position.latitude.toString();
+        _longitudeController.text = position.longitude.toString();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Location updated successfully!")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error getting location: $e")),
+      );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -71,15 +176,17 @@ class _AddListingScreenState extends State<AddListingScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final double lat = double.tryParse(_latitudeController.text) ?? 17.3850;
+      final double lng = double.tryParse(_longitudeController.text) ?? 78.4867;
+
       // Prepare form data map
       final Map<String, dynamic> dataMap = {
         "name": _nameController.text.trim(),
         "category_id": _selectedCategoryId,
         "owner_name": _ownerNameController.text.trim(),
         "owner_phone": _phoneController.text.trim(),
-        // Mock latitude/longitude for Hyderabad in development
-        "latitude": 17.3850 + (0.01 * (_nameController.text.length % 5)),
-        "longitude": 78.4867 + (0.01 * (_nameController.text.length % 3)),
+        "latitude": lat,
+        "longitude": lng,
         "address": _addressController.text.trim(),
         "working_days_json": "[1, 2, 3, 4, 5]", // Mon-Fri
         "working_hours": _workingHoursController.text.trim(),
@@ -261,6 +368,40 @@ class _AddListingScreenState extends State<AddListingScreen> {
                       validator: (val) => val!.trim().isEmpty ? "Required" : null,
                     ),
                     const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _latitudeController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(labelText: "Latitude *"),
+                            validator: (val) => val!.trim().isEmpty ? "Required" : null,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _longitudeController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(labelText: "Longitude *"),
+                            validator: (val) => val!.trim().isEmpty ? "Required" : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.my_location),
+                      label: const Text("Get Current GPS Location"),
+                      onPressed: _getCurrentLocation,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+                        foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+                        minimumSize: const Size(double.infinity, 45),
+                        elevation: 0,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _workingHoursController,
                       decoration: const InputDecoration(labelText: "Working Hours"),
@@ -334,9 +475,9 @@ class _AddListingScreenState extends State<AddListingScreen> {
                       const SizedBox(height: 16),
                     ],
                     OutlinedButton.icon(
-                      onPressed: _pickImages,
+                      onPressed: _showImagePickerOptions,
                       icon: const Icon(Icons.add_photo_alternate_outlined, color: Color(0xFF6366F1)),
-                      label: const Text("Select Images from Gallery", style: TextStyle(color: Color(0xFF6366F1))),
+                      label: const Text("Add Images (Camera / Gallery)", style: TextStyle(color: Color(0xFF6366F1))),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

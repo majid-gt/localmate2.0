@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   final String listingId;
@@ -163,6 +165,27 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     return "$rootHost$path";
   }
 
+  Future<void> _openNavigation(double lat, double lng) async {
+    final geoUri = Uri.parse("geo:$lat,$lng?q=$lat,$lng");
+    final webUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
+
+    try {
+      if (await canLaunchUrl(geoUri)) {
+        await launchUrl(geoUri);
+      } else if (await canLaunchUrl(webUri)) {
+        await launchUrl(webUri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Could not launch navigation application.")),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error launching map: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -282,11 +305,17 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     subtitle: const Text("Owner"),
                     trailing: IconButton(
                       icon: const Icon(Icons.call, color: Colors.green),
-                      onPressed: () {
-                        // In real device, launch url: tel:${listing['owner_phone']}
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Calling owner: ${listing['owner_phone']}")),
-                        );
+                      onPressed: () async {
+                        final telUri = Uri.parse("tel:${listing['owner_phone']}");
+                        if (await canLaunchUrl(telUri)) {
+                          await launchUrl(telUri);
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Calling owner: ${listing['owner_phone']}")),
+                            );
+                          }
+                        }
                       },
                     ),
                   ),
@@ -295,6 +324,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     leading: const Icon(Icons.location_on, color: Color(0xFF6366F1)),
                     title: Text(listing['address']),
                     subtitle: Text("Lat: ${listing['latitude']}, Lng: ${listing['longitude']}"),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.directions, color: AppTheme.primaryColor),
+                      onPressed: () => _openNavigation(listing['latitude'], listing['longitude']),
+                    ),
                   ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
