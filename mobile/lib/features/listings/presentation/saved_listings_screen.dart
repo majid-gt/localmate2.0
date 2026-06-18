@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -40,6 +41,19 @@ class _SavedListingsScreenState extends State<SavedListingsScreen> {
           _isLoading = false;
         });
       }
+    } on DioException catch (e) {
+      String msg = "Connection error. Make sure backend is running.";
+      if (e.response != null && e.response?.data != null && e.response?.data is Map) {
+        final detail = e.response?.data['detail'];
+        if (detail != null) {
+          msg = detail.toString();
+        }
+      }
+      setState(() {
+        _errorMessage = msg;
+        _isLoading = false;
+      });
+      debugPrint("Error fetching saved listings: $e");
     } catch (e) {
       setState(() {
         _errorMessage = "Connection error. Make sure backend is running.";
@@ -173,10 +187,10 @@ class _SavedListingsScreenState extends State<SavedListingsScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           child: ListTile(
                             contentPadding: const EdgeInsets.all(16.0),
-                            leading: const CircleAvatar(
+                            leading: CircleAvatar(
                               radius: 28,
-                              backgroundColor: Color(0xFFEEF2F6),
-                              child: Icon(Icons.storefront, color: Color(0xFF6366F1)),
+                              backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              child: Icon(Icons.storefront, color: Theme.of(context).colorScheme.secondary),
                             ),
                             title: Text(
                               listing['name'],

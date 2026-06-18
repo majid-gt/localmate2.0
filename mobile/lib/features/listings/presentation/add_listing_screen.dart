@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -390,16 +391,46 @@ class _AddListingScreenState extends State<AddListingScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.my_location),
-                      label: const Text("Get Current GPS Location"),
-                      onPressed: _getCurrentLocation,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-                        foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
-                        minimumSize: const Size(double.infinity, 45),
-                        elevation: 0,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.my_location, size: 16),
+                            label: const Text("Get GPS Location", style: TextStyle(fontSize: 12)),
+                            onPressed: _getCurrentLocation,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+                              foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+                              minimumSize: const Size(0, 45),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.map_outlined, size: 16),
+                            label: const Text("Pick on Map", style: TextStyle(fontSize: 12)),
+                            onPressed: () async {
+                              final double currentLat = double.tryParse(_latitudeController.text) ?? 17.3850;
+                              final double currentLng = double.tryParse(_longitudeController.text) ?? 78.4867;
+                              final result = await context.push('/map-picker?lat=$currentLat&lng=$currentLng');
+                              if (result != null && result is LatLng) {
+                                setState(() {
+                                  _latitudeController.text = result.latitude.toString();
+                                  _longitudeController.text = result.longitude.toString();
+                                });
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+                              foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+                              minimumSize: const Size(0, 45),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -476,12 +507,12 @@ class _AddListingScreenState extends State<AddListingScreen> {
                     ],
                     OutlinedButton.icon(
                       onPressed: _showImagePickerOptions,
-                      icon: const Icon(Icons.add_photo_alternate_outlined, color: Color(0xFF6366F1)),
-                      label: const Text("Add Images (Camera / Gallery)", style: TextStyle(color: Color(0xFF6366F1))),
+                      icon: const Icon(Icons.add_photo_alternate_outlined, color: Color(0xFFE11D48)),
+                      label: const Text("Add Images (Camera / Gallery)", style: TextStyle(color: Color(0xFFE11D48))),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        side: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+                        side: const BorderSide(color: Color(0xFFE11D48), width: 1.5),
                       ),
                     ),
                     const SizedBox(height: 32),

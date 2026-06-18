@@ -12,6 +12,9 @@ import '../../features/listings/presentation/add_listing_screen.dart';
 import '../../features/listings/presentation/listing_detail_screen.dart';
 import '../../features/listings/presentation/my_listings_screen.dart';
 import '../../features/listings/presentation/saved_listings_screen.dart';
+import '../../features/listings/presentation/edit_listing_screen.dart';
+import '../../features/listings/presentation/admin_dashboard_screen.dart';
+import '../../features/listings/presentation/map_picker_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -21,14 +24,7 @@ final GoRouter appRouter = GoRouter(
     
     final loggingIn = state.matchedLocation == '/login';
     
-    // Allow users to search/browse listings without login (public)
-    // Only redirect to login if attempting to create/modify listing or review
-    final requiresAuth = state.matchedLocation.startsWith('/listings/add') ||
-                         state.matchedLocation.startsWith('/profile') ||
-                         state.matchedLocation.startsWith('/my-listings') ||
-                         state.matchedLocation.startsWith('/saved-listings');
-    
-    if (token == null && requiresAuth) {
+    if (token == null && !loggingIn) {
       return '/login';
     }
     
@@ -41,7 +37,10 @@ final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(
       path: '/',
-      builder: (context, state) => const ListingsScreen(),
+      builder: (context, state) {
+        final refresh = state.uri.queryParameters['refresh'];
+        return ListingsScreen(refreshKey: refresh);
+      },
     ),
     GoRoute(
       path: '/login',
@@ -82,6 +81,27 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final id = state.pathParameters['id']!;
         return ListingDetailScreen(listingId: id);
+      },
+    ),
+    GoRoute(
+      path: '/listings/:id/edit',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return EditListingScreen(listingId: id);
+      },
+    ),
+    GoRoute(
+      path: '/admin',
+      builder: (context, state) => const AdminDashboardScreen(),
+    ),
+    GoRoute(
+      path: '/map-picker',
+      builder: (context, state) {
+        final latVal = state.uri.queryParameters['lat'];
+        final lngVal = state.uri.queryParameters['lng'];
+        final double? lat = latVal != null ? double.tryParse(latVal) : null;
+        final double? lng = lngVal != null ? double.tryParse(lngVal) : null;
+        return MapPickerScreen(initialLatitude: lat, initialLongitude: lng);
       },
     ),
   ],

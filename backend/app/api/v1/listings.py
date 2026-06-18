@@ -104,6 +104,7 @@ def search_listings(
     longitude: Optional[float] = None,
     radius_km: Optional[float] = None,
     sort_by: str = "created_at",
+    open_now: bool = False,
     limit: int = 20,
     offset: int = 0,
     contributor_id: Optional[str] = None,
@@ -111,15 +112,32 @@ def search_listings(
 ):
     results, _ = ListingRepository.search_listings(
         db, q=q, category_id=category_id, lat=latitude, lng=longitude,
-        radius_km=radius_km, sort_by=sort_by, limit=limit, offset=offset,
+        radius_km=radius_km, sort_by=sort_by, open_now=open_now, limit=limit, offset=offset,
         contributor_id=contributor_id
     )
     
-    # Map results and inject calculated distances
+    # Map results and inject calculated distances, ratings & open status
     output = []
+    import datetime
+    now_dt = datetime.datetime.now()
     for listing, dist in results:
-        # We set the transient property to populate the schema
+        # We set the transient properties to populate the schemas
         listing.distance = round(dist, 2) if (latitude is not None and longitude is not None) else None
+        
+        # Calculate rating & review count
+        ratings = [r.rating for r in listing.reviews]
+        listing.average_rating = round(sum(ratings) / len(ratings), 1) if ratings else 0.0
+        listing.reviews_count = len(ratings)
+        
+        # Check open status
+        days = listing.working_days
+        if not isinstance(days, list):
+            try:
+                days = json.loads(listing.working_days)
+            except:
+                days = [1, 2, 3, 4, 5]
+        listing.is_open = ListingRepository.is_open_now(days, listing.working_hours or "", now_dt)
+        
         output.append(listing)
     return output
 
@@ -133,9 +151,20 @@ def get_listing_detail(id: str, db: Session = Depends(get_db)):
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     
-    # Calculate average rating of listing
+    # Calculate average rating, reviews count and open status of listing
     ratings = [r.rating for r in listing.reviews]
     listing.average_rating = round(sum(ratings) / len(ratings), 1) if ratings else 0.0
+    listing.reviews_count = len(ratings)
+    
+    import datetime
+    now_dt = datetime.datetime.now()
+    days = listing.working_days
+    if not isinstance(days, list):
+        try:
+            days = json.loads(listing.working_days)
+        except:
+            days = [1, 2, 3, 4, 5]
+    listing.is_open = ListingRepository.is_open_now(days, listing.working_hours or "", now_dt)
     
     return listing
 

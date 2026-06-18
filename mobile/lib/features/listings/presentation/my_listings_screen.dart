@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -43,6 +44,19 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
           _isLoading = false;
         });
       }
+    } on DioException catch (e) {
+      String msg = "Connection error. Make sure backend is running.";
+      if (e.response != null && e.response?.data != null && e.response?.data is Map) {
+        final detail = e.response?.data['detail'];
+        if (detail != null) {
+          msg = detail.toString();
+        }
+      }
+      setState(() {
+        _errorMessage = msg;
+        _isLoading = false;
+      });
+      debugPrint("Error fetching my listings: $e");
     } catch (e) {
       setState(() {
         _errorMessage = "Connection error. Make sure backend is running.";
@@ -222,7 +236,27 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                                       ),
                                       if (isMe) ...[
                                         const Spacer(),
-                                        // Toggle Switch / Action
+                                        TextButton.icon(
+                                          icon: const Icon(
+                                            Icons.edit_outlined,
+                                            size: 16,
+                                            color: AppTheme.primaryColor,
+                                          ),
+                                          label: const Text(
+                                            "Edit",
+                                            style: TextStyle(
+                                              color: AppTheme.primaryColor,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          onPressed: () => context.push('/listings/${listing['id']}/edit').then((result) {
+                                            if (result == true) {
+                                              _fetchMyListings();
+                                            }
+                                          }),
+                                        ),
+                                        const SizedBox(width: 8),
                                         TextButton.icon(
                                           icon: Icon(
                                             isActive ? Icons.block : Icons.check_circle_outline,

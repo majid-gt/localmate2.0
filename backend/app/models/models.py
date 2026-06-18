@@ -118,13 +118,17 @@ class ContributorReview(Base):
     id = Column(String(36), primary_key=True, index=True)
     contributor_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     author_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    listing_id = Column(String(36), ForeignKey("listings.id", ondelete="CASCADE"), nullable=True)
+    image_url = Column(String(500), nullable=True)
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
+    special_points = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
     contributor = relationship("User", foreign_keys=[contributor_id], back_populates="contributor_reviews_received")
     author = relationship("User", foreign_keys=[author_id], back_populates="contributor_reviews_written")
+    listing = relationship("Listing")
 
 class ReputationScore(Base):
     __tablename__ = "reputation_scores"

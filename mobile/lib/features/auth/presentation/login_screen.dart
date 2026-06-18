@@ -30,6 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      debugPrint("Attempting OTP send. Base URL: ${DioClient.baseUrl}");
       final response = await _dio.post("/auth/otp/send", data: {"phone_number": phone});
       if (response.statusCode == 200) {
         setState(() => _otpSent = true);
@@ -40,7 +41,8 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      setState(() => _errorMessage = "Failed to send OTP. Try again.");
+      debugPrint("OTP Send Error: $e");
+      setState(() => _errorMessage = "Failed to send OTP. Try again. Error: $e");
     } finally {
       setState(() => _isLoading = false);
     }
@@ -84,7 +86,8 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (e) {
-      setState(() => _errorMessage = "Invalid OTP code. Please check and try again.");
+      debugPrint("OTP Verify Error: $e");
+      setState(() => _errorMessage = "Invalid OTP code. Error: $e");
     } finally {
       setState(() => _isLoading = false);
     }
@@ -122,15 +125,73 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (e) {
-      setState(() => _errorMessage = "Google authentication failed.");
+      debugPrint("Google Login Error: $e");
+      setState(() => _errorMessage = "Google authentication failed. Error: $e");
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
+  void _showServerSettingsDialog() {
+    final TextEditingController urlController = TextEditingController(text: DioClient.baseUrl);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Server Settings"),
+        content: TextField(
+          controller: urlController,
+          decoration: const InputDecoration(
+            labelText: "API Base URL",
+            hintText: "http://192.168.1.100:8000/api/v1",
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          ElevatedButton(
+            child: const Text("Save"),
+            onPressed: () async {
+              final newUrl = urlController.text.trim();
+              if (newUrl.isEmpty || (!newUrl.startsWith("http://") && !newUrl.startsWith("https://"))) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Please enter a valid URL starting with http:// or https://")),
+                );
+                return;
+              }
+
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('custom_base_url', newUrl);
+              DioClient.setBaseUrl(newUrl);
+
+              navigator.pop();
+              messenger.showSnackBar(
+                SnackBar(content: Text("Server base URL updated to: $newUrl")),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: Color(0xFFE11D48)),
+            onPressed: _showServerSettingsDialog,
+          ),
+        ],
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -141,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const Icon(
                 Icons.people_alt_rounded,
                 size: 80,
-                color: Color(0xFF6366F1),
+                color: Color(0xFFE11D48),
               ),
               const SizedBox(height: 24),
               const Text(

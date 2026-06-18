@@ -3,15 +3,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class DioClient {
   final Dio dio;
-  static const String baseUrl = "http://localhost:8000/api/v1"; // 10.0.2.2 points to local host from android emulator
+  static String _baseUrl = "http://127.0.0.1:8000/api/v1"; // 10.0.2.2 points to local host from android emulator
+
+  static void setBaseUrl(String url) {
+    _baseUrl = url;
+  }
+
+  static String get baseUrl => _baseUrl;
 
   DioClient() : dio = Dio(BaseOptions(
-    baseUrl: baseUrl,
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 10),
   )) {
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
+        options.baseUrl = _baseUrl;
         final prefs = await SharedPreferences.getInstance();
         final token = prefs.getString('access_token');
         if (token != null) {

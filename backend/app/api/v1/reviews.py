@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.orm import Session
 from typing import List
+import os
+import uuid
+from app.core.config import settings
 from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.models import User
@@ -56,3 +59,20 @@ def get_contributor_reviews(id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
         
     return ReviewRepository.get_contributor_reviews(db, id)
+
+@router.post("/upload")
+def upload_review_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    ext = os.path.splitext(file.filename)[1] or ".jpg"
+    img_id = str(uuid.uuid4())
+    filename = f"proof_{img_id}{ext}"
+    file_path = os.path.join(settings.UPLOAD_DIR, filename)
+    
+    with open(file_path, "wb") as f:
+        f.write(file.file.read())
+        
+    image_url = f"/uploads/{filename}"
+    return {"image_url": image_url}

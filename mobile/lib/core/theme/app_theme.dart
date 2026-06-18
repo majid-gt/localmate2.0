@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static const primaryColor = Color(0xFF6366F1); // Modern Sleek Indigo
-  static const secondaryColor = Color(0xFFF59E0B); // Amber Accent
-  static const darkBackgroundColor = Color(0xFF0F172A); // Deep Slate
+  static const primaryColor = Color(0xFF1E293B); // Deep Slate
+  static const secondaryColor = Color(0xFFE11D48); // Crimson Rose
+  static const darkBackgroundColor = Color(0xFF0F172A); // Deep Slate Dark Background
   static const cardDarkColor = Color(0xFF1E293B);
 
   static ThemeData get lightTheme {

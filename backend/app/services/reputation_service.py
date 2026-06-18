@@ -38,8 +38,8 @@ class ReputationService:
         else:
             rep.avg_rating = 0.00
 
-        # Points for reviews: rating * 2 for reviews on listings, rating * 5 for contributor reviews
-        review_points = sum(r.rating * 2 for r in reviews_on_listings) + sum(r.rating * 5 for r in contributor_reviews)
+        # Points for reviews: rating * 2 for reviews on listings, rating * 5 + special_points for contributor reviews
+        review_points = sum(r.rating * 2 for r in reviews_on_listings) + sum(r.rating * 5 + r.special_points for r in contributor_reviews)
 
         # Total points
         rep.points = listing_points + review_points

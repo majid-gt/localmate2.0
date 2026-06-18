@@ -37,7 +37,10 @@ class ReviewRepository:
             contributor_id=contributor_id,
             author_id=author_id,
             rating=review_in.rating,
-            comment=review_in.comment
+            comment=review_in.comment,
+            listing_id=review_in.listing_id,
+            image_url=review_in.image_url,
+            special_points=review_in.special_points or 0
         )
         db.add(db_review)
         db.commit()

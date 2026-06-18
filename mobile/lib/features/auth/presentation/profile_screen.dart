@@ -40,10 +40,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
     "https://api.dicebear.com/7.x/avataaars/png?seed=Luna",
   ];
 
+  // Contributor reviews and auth tracking
+  String? _currentUserId;
+  bool _isLoggedIn = false;
+  List<dynamic> _contributorReviews = [];
+  bool _isLoadingReviews = false;
+
   @override
   void initState() {
     super.initState();
-    _fetchProfile();
+    _checkLoginStatus().then((_) => _fetchProfile());
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    _isLoggedIn = token != null;
+    if (_isLoggedIn) {
+      try {
+        final response = await _dio.get("/users/me");
+        if (response.statusCode == 200) {
+          setState(() {
+            _currentUserId = response.data['id'];
+          });
+        }
+      } catch (e) {
+        debugPrint("Error fetching current user info: $e");
+      }
+    }
+  }
+
+  Future<void> _fetchContributorReviews(String userId) async {
+    setState(() => _isLoadingReviews = true);
+    try {
+      final response = await _dio.get("/reviews/users/$userId");
+      if (response.statusCode == 200) {
+        setState(() {
+          _contributorReviews = response.data;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching contributor reviews: $e");
+    } finally {
+      setState(() => _isLoadingReviews = false);
+    }
   }
 
   @override
@@ -68,12 +108,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _user = response.data;
           _isLoading = false;
         });
+        if (_user != null && _user!['id'] != null) {
+          await _fetchContributorReviews(_user!['id']);
+        }
       } else {
         setState(() {
           _errorMessage = "Failed to load profile. Please try again.";
           _isLoading = false;
         });
       }
+    } on DioException catch (e) {
+      String msg = "Connection error. Make sure backend is running.";
+      if (e.response != null && e.response?.data != null && e.response?.data is Map) {
+        final detail = e.response?.data['detail'];
+        if (detail != null) {
+          msg = detail.toString();
+        }
+      }
+      setState(() {
+        _errorMessage = msg;
+        _isLoading = false;
+      });
+      debugPrint("Error fetching profile: $e");
     } catch (e) {
       setState(() {
         _errorMessage = "Connection error. Make sure backend is running.";
@@ -90,7 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Logged out successfully")),
       );
-      context.go('/');
+      context.go('/?refresh=${DateTime.now().millisecondsSinceEpoch}');
     }
   }
 
@@ -374,10 +430,134 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _addContributorReviewDialog() {
+    if (!_isLoggedIn) {
+      context.push('/login').then((_) => _checkLoginStatus().then((_) => _fetchProfile()));
+      return;
+    }
+
+    double selectedRating = 5.0;
+    final TextEditingController commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text("Review Contributor"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  final ratingValue = index + 1.0;
+                  return IconButton(
+                    icon: Icon(
+                      selectedRating >= ratingValue ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 36,
+                    ),
+                    onPressed: () => setDialogState(() => selectedRating = ratingValue),
+                  );
+                }),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: commentController,
+                maxLines: 2,
+                decoration: const InputDecoration(hintText: "Add your feedback about this contributor..."),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () => Navigator.pop(context),
+            ),
+            ElevatedButton(
+              child: const Text("Submit"),
+              onPressed: () async {
+                try {
+                  await _dio.post("/reviews/users/${_user!['id']}", data: {
+                    "rating": selectedRating.toInt(),
+                    "comment": commentController.text.trim(),
+                  });
+                  if (mounted) {
+                    Navigator.pop(context);
+                    _fetchProfile(); // reload profile to recalculate reputation
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Error submitting contributor review.")),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openAdminPanel() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedSecret = prefs.getString('admin_secret');
+    if (savedSecret == "localmate_admin_secret_key" && mounted) {
+      context.push('/admin');
+      return;
+    }
+
+    if (!mounted) return;
+
+    final TextEditingController secretController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Admin Authentication"),
+        content: TextField(
+          controller: secretController,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: "Admin Secret Key",
+            hintText: "Enter administrative credentials",
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          ElevatedButton(
+            child: const Text("Verify"),
+            onPressed: () async {
+              final key = secretController.text.trim();
+              if (key == "localmate_admin_secret_key") {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('admin_secret', key);
+                if (context.mounted) {
+                  Navigator.pop(context); // close dialog
+                  context.push('/admin');
+                }
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Invalid admin credentials.")),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isMe = widget.userId == null;
+    final isMe = widget.userId == null || widget.userId == _currentUserId;
 
     ImageProvider? imageProvider;
     if (_pickedImageFile != null) {
@@ -405,11 +585,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Icon(Icons.error_outline, size: 64, color: Colors.red),
                         const SizedBox(height: 16),
                         Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
+                        const SizedBox(height: 32),
+                        ElevatedButton.icon(
                           onPressed: _fetchProfile,
-                          child: const Text("Retry"),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text("Retry"),
                         ),
+                        if (isMe) ...[
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                            ),
+                            icon: const Icon(Icons.logout),
+                            label: const Text("Log Out"),
+                            onPressed: _logout,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -693,10 +886,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     trailing: const Icon(Icons.chevron_right),
                                     onTap: () => context.push('/saved-listings'),
                                   ),
+                                  const Divider(height: 1),
+                                  ListTile(
+                                    leading: const Icon(Icons.security_rounded, color: AppTheme.primaryColor),
+                                    title: const Text("Admin Panel"),
+                                    subtitle: const Text("Manage system listings and users"),
+                                    trailing: const Icon(Icons.chevron_right),
+                                    onTap: _openAdminPanel,
+                                  ),
                                 ],
                               ],
                             ),
                           ),
+                          const SizedBox(height: 32),
+                          
+                          // Contributor Reviews Section
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("Contributor Reviews", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                              if (!isMe)
+                                TextButton.icon(
+                                  icon: const Icon(Icons.rate_review_outlined),
+                                  label: const Text("Write Review"),
+                                  onPressed: _addContributorReviewDialog,
+                                ),
+                            ],
+                          ),
+                          const Divider(),
+                          
+                          if (_isLoadingReviews)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          else if (_contributorReviews.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16.0),
+                              child: Center(child: Text("No reviews yet. Share your experience!")),
+                            )
+                          else
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _contributorReviews.length,
+                              itemBuilder: (context, index) {
+                                final rev = _contributorReviews[index];
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(rev['author']?['name'] ?? 'Anonymous', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                          const Spacer(),
+                                          Row(
+                                            children: List.generate(5, (starIdx) {
+                                              return Icon(
+                                                starIdx < rev['rating'] ? Icons.star : Icons.star_border,
+                                                color: Colors.amber,
+                                                size: 16,
+                                              );
+                                            }),
+                                          ),
+                                        ],
+                                      ),
+                                      if (rev['comment'] != null && rev['comment'].isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text(rev['comment'], style: TextStyle(color: Colors.grey.shade700)),
+                                      ],
+                                      const Divider(height: 16),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           const SizedBox(height: 32),
                         ],
 

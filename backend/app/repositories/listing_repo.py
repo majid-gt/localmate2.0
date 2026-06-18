@@ -77,6 +77,54 @@ class ListingRepository:
         return db.query(Listing).filter(Listing.contributor_id == contributor_id).order_by(Listing.created_at.desc()).all()
 
     @staticmethod
+    def is_open_now(working_days: list, working_hours_str: str, current_dt) -> bool:
+        # Check day of week (current_dt.isoweekday(): 1=Mon, 7=Sun)
+        day_of_week = current_dt.isoweekday()
+        if day_of_week not in working_days:
+            return False
+            
+        # Parse working hours range e.g. "9:00 AM - 6:00 PM"
+        try:
+            parts = working_hours_str.lower().split("-")
+            if len(parts) != 2:
+                return True # Default to open on format error
+                
+            start_str = parts[0].strip()
+            end_str = parts[1].strip()
+            
+            def parse_time(time_str: str):
+                time_str = time_str.replace(" ", "")
+                is_pm = "pm" in time_str
+                is_am = "am" in time_str
+                time_str = time_str.replace("pm", "").replace("am", "")
+                
+                if ":" in time_str:
+                    h_str, m_str = time_str.split(":")
+                    hour = int(h_str)
+                    minute = int(m_str)
+                else:
+                    hour = int(time_str)
+                    minute = 0
+                    
+                if is_pm and hour != 12:
+                    hour += 12
+                elif is_am and hour == 12:
+                    hour = 0
+                import datetime
+                return datetime.time(hour, minute)
+                
+            start_time = parse_time(start_str)
+            end_time = parse_time(end_str)
+            current_time = current_dt.time()
+            
+            if start_time <= end_time:
+                return start_time <= current_time <= end_time
+            else: # overnight
+                return current_time >= start_time or current_time <= end_time
+        except Exception:
+            return True
+
+    @staticmethod
     def search_listings(
         db: Session,
         q: Optional[str] = None,
@@ -85,6 +133,7 @@ class ListingRepository:
         lng: Optional[float] = None,
         radius_km: Optional[float] = None,
         sort_by: str = "created_at",
+        open_now: bool = False,
         limit: int = 20,
         offset: int = 0,
         contributor_id: Optional[str] = None
@@ -130,26 +179,57 @@ class ListingRepository:
             if radius_km:
                 query = query.filter(distance_col <= radius_km)
 
-        # Total count before paging
-        total_count = query.count()
-
         # Sorting
         if lat is not None and lng is not None and sort_by == "distance":
             query = query.order_by(distance_col.asc())
         elif sort_by == "rating":
-            # Sort by average rating of reviews
-            # Subquery or join for rating
-            pass # for MVP, we'll sort by created_at or distance, fallback to created_at
-            query = query.order_by(Listing.created_at.desc())
+            from app.models.models import ServiceReview
+            query = query.outerjoin(ServiceReview).group_by(Listing.id).order_by(
+                func.coalesce(func.avg(ServiceReview.rating), 0.0).desc(),
+                Listing.created_at.desc()
+            )
+        elif sort_by == "reviews_count":
+            from app.models.models import ServiceReview
+            query = query.outerjoin(ServiceReview).group_by(Listing.id).order_by(
+                func.count(ServiceReview.id).desc(),
+                Listing.created_at.desc()
+            )
         else:
             query = query.order_by(Listing.created_at.desc())
 
-        # Fetch with offset and limit
-        results = query.offset(offset).limit(limit).all()
-        
+        # If open_now is True, we need to filter in Python
+        if open_now:
+            # Fetch all matching candidates (no SQL limit/offset here)
+            results = query.all()
+            
+            # Filter in Python
+            import datetime
+            now_dt = datetime.datetime.now()
+            
+            filtered_results = []
+            for listing in results:
+                days = listing.working_days
+                if not isinstance(days, list):
+                    try:
+                        days = json.loads(listing.working_days)
+                    except:
+                        days = [1, 2, 3, 4, 5]
+                
+                if ListingRepository.is_open_now(days, listing.working_hours or "", now_dt):
+                    filtered_results.append(listing)
+            
+            total_count = len(filtered_results)
+            # Apply manual limit/offset
+            paginated_results = filtered_results[offset : offset + limit]
+        else:
+            # Total count before paging
+            total_count = query.count()
+            # Fetch with offset and limit
+            paginated_results = query.offset(offset).limit(limit).all()
+
         # Calculate distance for response objects
         enriched_results = []
-        for listing in results:
+        for listing in paginated_results:
             dist = 0.0
             if lat is not None and lng is not None:
                 # Math calculation for distance in python

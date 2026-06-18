@@ -47,3 +47,24 @@ def disable_user(id: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     return user
+
+@router.put("/users/{id}/enable", response_model=UserResponse, dependencies=[Depends(verify_admin)])
+def enable_user(id: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = True
+    db.commit()
+    db.refresh(user)
+    return user
+
+@router.put("/listings/{id}/enable", response_model=ListingResponse, dependencies=[Depends(verify_admin)])
+def enable_listing(id: str, db: Session = Depends(get_db)):
+    listing = db.query(Listing).filter(Listing.id == id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    listing.status = "active"
+    db.commit()
+    db.refresh(listing)
+    return listing
+

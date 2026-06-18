@@ -104,6 +104,8 @@ class ListingResponse(ListingBase):
     created_at: datetime
     images: List[ListingImageResponse] = []
     average_rating: float = 0.0
+    reviews_count: int = 0
+    is_open: bool = True
     distance: Optional[float] = None  # Optional distance in kilometers
 
     class Config:
@@ -137,6 +139,9 @@ class ServiceReviewResponse(BaseModel):
 class ContributorReviewCreate(BaseModel):
     rating: int = Field(..., ge=1, le=5)
     comment: Optional[str] = None
+    listing_id: Optional[str] = None
+    image_url: Optional[str] = None
+    special_points: Optional[int] = Field(default=0, ge=0)
 
 class ContributorReviewResponse(BaseModel):
     id: str
@@ -144,8 +149,12 @@ class ContributorReviewResponse(BaseModel):
     author_id: str
     rating: int
     comment: Optional[str]
+    listing_id: Optional[str] = None
+    image_url: Optional[str] = None
+    special_points: int = 0
     created_at: datetime
     author: Optional[UserBase] = None
+    listing: Optional[ListingResponse] = None
 
     class Config:
         from_attributes = True
