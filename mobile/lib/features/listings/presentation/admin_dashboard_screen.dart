@@ -19,6 +19,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   List<dynamic> _listings = [];
   List<dynamic> _users = [];
   List<dynamic> _reviews = [];
+  List<dynamic> _suggestions = [];
 
   @override
   void initState() {
@@ -47,6 +48,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _fetchListings(),
       _fetchUsers(),
       _fetchReviews(),
+      _fetchSuggestions(),
     ]);
 
     setState(() => _isLoading = false);
@@ -92,6 +94,47 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       }
     } catch (e) {
       debugPrint("Error fetching admin reviews: $e");
+    }
+  }
+
+  Future<void> _fetchSuggestions() async {
+    try {
+      final response = await _dio.get(
+        "/admin/suggestions",
+        options: Options(headers: {"x-admin-secret": _adminSecret}),
+      );
+      if (response.statusCode == 200) {
+        setState(() => _suggestions = response.data);
+      }
+    } catch (e) {
+      debugPrint("Error fetching admin suggestions: $e");
+    }
+  }
+
+  Future<void> _resolveSuggestion(String id) async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await _dio.put(
+        "/admin/suggestions/$id/resolve",
+        options: Options(headers: {"x-admin-secret": _adminSecret}),
+      );
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Suggestion resolved successfully.")),
+          );
+        }
+        await _fetchSuggestions();
+      }
+    } catch (e) {
+      debugPrint("Error resolving suggestion: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to resolve suggestion.")),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -207,7 +250,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Admin Dashboard"),
@@ -216,6 +259,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               Tab(icon: Icon(Icons.storefront_rounded), text: "Listings"),
               Tab(icon: Icon(Icons.people_rounded), text: "Users"),
               Tab(icon: Icon(Icons.rate_review_rounded), text: "Reviews"),
+              Tab(icon: Icon(Icons.lightbulb_outline_rounded), text: "Suggestions"),
             ],
           ),
         ),
@@ -245,6 +289,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       _buildListingsTab(),
                       _buildUsersTab(),
                       _buildReviewsTab(),
+                      _buildSuggestionsTab(),
                     ],
                   ),
       ),
@@ -418,6 +463,83 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 Text(
                   "Listing ID: ${review['listing_id']}",
                   style: const TextStyle(fontSize: 10, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSuggestionsTab() {
+    if (_suggestions.isEmpty) {
+      return const Center(child: Text("No suggestions found."));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16.0),
+      itemCount: _suggestions.length,
+      itemBuilder: (context, index) {
+        final suggestion = _suggestions[index];
+        final isPending = suggestion['status'] == 'pending';
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12.0),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        suggestion['listing_name'] ?? 'Unknown Listing',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isPending ? const Color(0xFFFEF3C7) : const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        isPending ? "Pending" : "Resolved",
+                        style: TextStyle(
+                          color: isPending ? const Color(0xFF92400E) : const Color(0xFF166534),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  suggestion['comment'] ?? '',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "By: ${suggestion['contributor_name'] ?? 'Anonymous'}",
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                    if (isPending)
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: () => _resolveSuggestion(suggestion['id']),
+                        child: const Text("Resolve", style: TextStyle(fontSize: 12)),
+                      ),
+                  ],
                 ),
               ],
             ),

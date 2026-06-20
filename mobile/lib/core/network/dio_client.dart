@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class DioClient {
   final Dio dio;
-  static String _baseUrl = "http://127.0.0.1:8000/api/v1"; // 10.0.2.2 points to local host from android emulator
+  static String _baseUrl = "http://localhost:8000/api/v1"; // localhost matches ADB reverse forwarding rule
 
   static void setBaseUrl(String url) {
     _baseUrl = url;

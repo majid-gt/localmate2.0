@@ -11,8 +11,9 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   var customBaseUrl = prefs.getString('custom_base_url');
   if (customBaseUrl != null && customBaseUrl.isNotEmpty) {
-    if (customBaseUrl.contains("localhost")) {
-      customBaseUrl = customBaseUrl.replaceAll("localhost", "127.0.0.1");
+    // Revert 127.0.0.1 back to localhost to allow ADB reverse port forwarding to match correctly
+    if (customBaseUrl.contains("127.0.0.1")) {
+      customBaseUrl = customBaseUrl.replaceAll("127.0.0.1", "localhost");
       await prefs.setString('custom_base_url', customBaseUrl);
     }
     DioClient.setBaseUrl(customBaseUrl);

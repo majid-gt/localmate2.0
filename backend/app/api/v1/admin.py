@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Header, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
-from app.models.models import User, Listing, ServiceReview
-from app.schemas.schemas import UserResponse, ListingResponse, ServiceReviewResponse
+from app.models.models import User, Listing, ServiceReview, ListingSuggestion
+from app.schemas.schemas import UserResponse, ListingResponse, ServiceReviewResponse, ListingSuggestionResponse, AdminListingSuggestionResponse
 
 router = APIRouter()
 
@@ -67,4 +67,32 @@ def enable_listing(id: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(listing)
     return listing
+
+@router.get("/suggestions", response_model=List[AdminListingSuggestionResponse], dependencies=[Depends(verify_admin)])
+def get_all_suggestions(db: Session = Depends(get_db)):
+    suggestions = db.query(ListingSuggestion).order_by(ListingSuggestion.created_at.desc()).all()
+    output = []
+    for s in suggestions:
+        output.append({
+            "id": s.id,
+            "listing_id": s.listing_id,
+            "contributor_id": s.contributor_id,
+            "comment": s.comment,
+            "status": s.status,
+            "created_at": s.created_at,
+            "listing_name": s.listing.name if s.listing else "Unknown Listing",
+            "contributor_name": s.contributor.name if s.contributor else "Unknown Contributor"
+        })
+    return output
+
+@router.put("/suggestions/{id}/resolve", response_model=ListingSuggestionResponse, dependencies=[Depends(verify_admin)])
+def resolve_suggestion(id: str, db: Session = Depends(get_db)):
+    suggestion = db.query(ListingSuggestion).filter(ListingSuggestion.id == id).first()
+    if not suggestion:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+    suggestion.status = "resolved"
+    db.commit()
+    db.refresh(suggestion)
+    return suggestion
+
 

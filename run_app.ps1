@@ -57,7 +57,7 @@ if ($portInUse) {
     }
     
     # Start uvicorn in a new command window so logs are visible separately
-    Start-Process cmd.exe -ArgumentList "/k `"$pythonPath`" -m uvicorn app.main:app --host 127.0.0.1 --port 8000" -WorkingDirectory $backendDir
+    Start-Process cmd.exe -ArgumentList "/k `"$pythonPath`" -m uvicorn app.main:app --host 0.0.0.0 --port 8000" -WorkingDirectory $backendDir
     Start-Sleep -Seconds 3
 }
 

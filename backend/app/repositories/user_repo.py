@@ -11,7 +11,26 @@ class UserRepository:
 
     @staticmethod
     def get_by_phone(db: Session, phone_number: str) -> Optional[User]:
-        return db.query(User).filter(User.phone_number == phone_number).first()
+        from sqlalchemy import or_
+        cleaned = phone_number.replace(" ", "").replace("-", "").strip()
+        if cleaned.startswith("+91"):
+            raw_ten_digits = cleaned[3:]
+            return db.query(User).filter(
+                or_(
+                    User.phone_number == cleaned,
+                    User.phone_number == raw_ten_digits,
+                    User.phone_number == f"+91 {raw_ten_digits}",
+                    User.phone_number == f"+91{raw_ten_digits}"
+                )
+            ).first()
+        else:
+            return db.query(User).filter(
+                or_(
+                    User.phone_number == cleaned,
+                    User.phone_number == f"+91{cleaned}",
+                    User.phone_number == f"+91 {cleaned}"
+                )
+            ).first()
 
     @staticmethod
     def get_by_google_id(db: Session, google_id: str) -> Optional[User]:
@@ -26,7 +45,8 @@ class UserRepository:
             name=user_in.name,
             email=user_in.email,
             profile_photo_url=user_in.profile_photo_url,
-            google_id=user_in.google_id
+            google_id=user_in.google_id,
+            fixed_otp=user_in.fixed_otp
         )
         db.add(db_user)
         db.flush()

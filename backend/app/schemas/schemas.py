@@ -21,6 +21,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     google_id: Optional[str] = None
+    fixed_otp: Optional[str] = None
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -173,3 +174,8 @@ class ListingSuggestionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class AdminListingSuggestionResponse(ListingSuggestionResponse):
+    listing_name: str
+    contributor_name: str
+

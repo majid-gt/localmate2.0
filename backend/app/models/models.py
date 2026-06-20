@@ -13,6 +13,7 @@ class User(Base):
     profile_photo_url = Column(String(500), nullable=True)
     google_id = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    fixed_otp = Column(String(10), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

@@ -34,10 +34,8 @@ class _LoginScreenState extends State<LoginScreen> {
       final response = await _dio.post("/auth/otp/send", data: {"phone_number": phone});
       if (response.statusCode == 200) {
         setState(() => _otpSent = true);
-        final debugCode = response.data['debug_code'];
-        // In local development, show the generated OTP code in a Snackbar for testing ease
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Test OTP: $debugCode (Use this to verify)")),
+          const SnackBar(content: Text("OTP sent successfully!")),
         );
       }
     } catch (e) {
@@ -199,10 +197,16 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(
-                Icons.people_alt_rounded,
-                size: 80,
-                color: Color(0xFFE11D48),
+              Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/images/app_icon.png',
+                    height: 80,
+                    width: 80,
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
               const Text(
@@ -265,27 +269,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: const Text("Change phone number"),
                 ),
               ],
-              const SizedBox(height: 24),
-              const Row(
-                children: [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text("OR"),
-                  ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 24),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.g_mobiledata, size: 28),
-                onPressed: _isLoading ? null : _googleLogin,
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                label: const Text("Sign in with Google"),
-              ),
             ],
           ),
         ),

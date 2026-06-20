@@ -212,6 +212,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final bool isDark = Theme.of(context).brightness == Brightness.dark;
             return Container(
               padding: const EdgeInsets.all(24.0),
               child: Column(
@@ -250,6 +251,24 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       ChoiceChip(
                         label: const Text("Newest"),
                         selected: _sortBy == 'created_at',
+                        showCheckmark: false,
+                        selectedColor: const Color(0xFFE11D48),
+                        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+                        labelStyle: TextStyle(
+                          color: _sortBy == 'created_at'
+                              ? Colors.white
+                              : (isDark ? Colors.white70 : Colors.black87),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100),
+                          side: BorderSide(
+                            color: _sortBy == 'created_at'
+                                ? const Color(0xFFE11D48)
+                                : (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
+                          ),
+                        ),
                         onSelected: (selected) {
                           if (selected) setSheetState(() => _sortBy = 'created_at');
                         },
@@ -257,6 +276,24 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       ChoiceChip(
                         label: const Text("Highest Rating"),
                         selected: _sortBy == 'rating',
+                        showCheckmark: false,
+                        selectedColor: const Color(0xFFE11D48),
+                        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+                        labelStyle: TextStyle(
+                          color: _sortBy == 'rating'
+                              ? Colors.white
+                              : (isDark ? Colors.white70 : Colors.black87),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100),
+                          side: BorderSide(
+                            color: _sortBy == 'rating'
+                                ? const Color(0xFFE11D48)
+                                : (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
+                          ),
+                        ),
                         onSelected: (selected) {
                           if (selected) setSheetState(() => _sortBy = 'rating');
                         },
@@ -264,6 +301,24 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       ChoiceChip(
                         label: const Text("Most Reviewed"),
                         selected: _sortBy == 'reviews_count',
+                        showCheckmark: false,
+                        selectedColor: const Color(0xFFE11D48),
+                        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+                        labelStyle: TextStyle(
+                          color: _sortBy == 'reviews_count'
+                              ? Colors.white
+                              : (isDark ? Colors.white70 : Colors.black87),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100),
+                          side: BorderSide(
+                            color: _sortBy == 'reviews_count'
+                                ? const Color(0xFFE11D48)
+                                : (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
+                          ),
+                        ),
                         onSelected: (selected) {
                           if (selected) setSheetState(() => _sortBy = 'reviews_count');
                         },
@@ -271,6 +326,24 @@ class _ListingsScreenState extends State<ListingsScreen> {
                       ChoiceChip(
                         label: const Text("Distance"),
                         selected: _sortBy == 'distance',
+                        showCheckmark: false,
+                        selectedColor: const Color(0xFFE11D48),
+                        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+                        labelStyle: TextStyle(
+                          color: _sortBy == 'distance'
+                              ? Colors.white
+                              : (isDark ? Colors.white70 : Colors.black87),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(100),
+                          side: BorderSide(
+                            color: _sortBy == 'distance'
+                                ? const Color(0xFFE11D48)
+                                : (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
+                          ),
+                        ),
                         onSelected: _nearbySelected || (_currentLatitude != null && _currentLongitude != null)
                             ? (selected) {
                                 if (selected) setSheetState(() => _sortBy = 'distance');
@@ -391,32 +464,30 @@ class _ListingsScreenState extends State<ListingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("LocalMate"),
-        actions: [
-          IconButton(
-            icon: Icon(_isMapView ? Icons.list : Icons.map, color: const Color(0xFFE11D48)),
-            onPressed: () {
-              setState(() {
-                _isMapView = !_isMapView;
-                _selectedListingForCard = null;
-              });
-            },
-          ),
-          if (_isLoggedIn) ...[
-            IconButton(
-              icon: const Icon(Icons.add_box_outlined, color: Color(0xFFE11D48)),
-              onPressed: () => context.push('/listings/add').then((_) => _fetchListings()),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              'assets/images/app_icon.png',
+              fit: BoxFit.cover,
             ),
+          ),
+        ),
+        leadingWidth: 56,
+        actions: [
+          if (_isLoggedIn)
             IconButton(
               icon: const Icon(Icons.account_circle_outlined, color: Color(0xFFE11D48)),
               onPressed: () => context.push('/profile').then((_) {
                 _checkLoginStatus();
                 _fetchListings();
               }),
-            ),
-          ] else
+            )
+          else
             TextButton.icon(
-              icon: const Icon(Icons.login),
-              label: const Text("Login"),
+              icon: const Icon(Icons.login, color: Color(0xFFE11D48)),
+              label: const Text("Login", style: TextStyle(color: Color(0xFFE11D48), fontWeight: FontWeight.bold)),
               onPressed: () => context.push('/login').then((_) {
                 _checkLoginStatus();
                 _fetchListings();
@@ -452,7 +523,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 Container(
                   decoration: BoxDecoration(
                     color: _openNow || _sortBy != 'created_at'
-                        ? const Color(0x1AE11D48)
+                        ? const Color(0xFFE11D48)
                         : (Theme.of(context).brightness == Brightness.dark
                             ? const Color(0xFF1E293B)
                             : Colors.grey.shade100),
@@ -469,7 +540,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                     icon: Icon(
                       Icons.filter_list_rounded,
                       color: _openNow || _sortBy != 'created_at'
-                          ? const Color(0xFFE11D48)
+                          ? Colors.white
                           : (Theme.of(context).brightness == Brightness.dark
                               ? Colors.white70
                               : Colors.black54),
@@ -583,11 +654,30 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 }
                 if (index == 1) {
                   final isSelected = _selectedCategoryId == null;
+                  final bool isDark = Theme.of(context).brightness == Brightness.dark;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8.0),
                     child: ChoiceChip(
                       label: const Text("All"),
                       selected: isSelected,
+                      showCheckmark: false,
+                      selectedColor: const Color(0xFFE11D48),
+                      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+                      labelStyle: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : (isDark ? Colors.white70 : Colors.black87),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(100),
+                        side: BorderSide(
+                          color: isSelected
+                              ? const Color(0xFFE11D48)
+                              : (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
+                        ),
+                      ),
                       onSelected: (_) {
                         setState(() => _selectedCategoryId = null);
                         _fetchListings(query: _searchController.text);
@@ -597,11 +687,30 @@ class _ListingsScreenState extends State<ListingsScreen> {
                 }
                 final category = _categories[index - 2];
                 final isSelected = _selectedCategoryId == category['id'];
+                final bool isDark = Theme.of(context).brightness == Brightness.dark;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8.0),
                   child: ChoiceChip(
                     label: Text(category['name']),
                     selected: isSelected,
+                    showCheckmark: false,
+                    selectedColor: const Color(0xFFE11D48),
+                    backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? Colors.white
+                          : (isDark ? Colors.white70 : Colors.black87),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100),
+                      side: BorderSide(
+                        color: isSelected
+                            ? const Color(0xFFE11D48)
+                            : (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
+                      ),
+                    ),
                     onSelected: (_) {
                       setState(() => _selectedCategoryId = category['id']);
                       _fetchListings(query: _searchController.text, categoryId: category['id']);
@@ -609,6 +718,50 @@ class _ListingsScreenState extends State<ListingsScreen> {
                   ),
                 );
               },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SlidingToggle(
+                  value: _isMapView,
+                  onChanged: (val) {
+                    setState(() {
+                      _isMapView = val;
+                      _selectedListingForCard = null;
+                    });
+                  },
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    if (_isLoggedIn) {
+                      context.push('/listings/add').then((_) => _fetchListings());
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Please login to add a service")),
+                      );
+                      context.push('/login').then((_) {
+                        _checkLoginStatus();
+                        _fetchListings();
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text("Add service"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE11D48),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(0, 40),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    elevation: 2,
+                  ),
+                ),
+              ],
             ),
           ),
           
@@ -1166,6 +1319,123 @@ class _ListingsScreenState extends State<ListingsScreen> {
                               );
                             },
                           ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SlidingToggle extends StatelessWidget {
+  final bool value; // false for List, true for Map
+  final ValueChanged<bool> onChanged;
+
+  const SlidingToggle({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: 160,
+      height: 40,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : Colors.grey.shade300,
+        ),
+      ),
+      child: Stack(
+        children: [
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+            child: Container(
+              width: 80,
+              height: 38,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE11D48),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFE11D48).withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onChanged(false),
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.list,
+                          size: 16,
+                          color: !value
+                              ? Colors.white
+                              : (isDark ? Colors.white70 : Colors.black87),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          "List",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: !value
+                                ? Colors.white
+                                : (isDark ? Colors.white70 : Colors.black87),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onChanged(true),
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.map,
+                          size: 16,
+                          color: value
+                              ? Colors.white
+                              : (isDark ? Colors.white70 : Colors.black87),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          "Map",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: value
+                                ? Colors.white
+                                : (isDark ? Colors.white70 : Colors.black87),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

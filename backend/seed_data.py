@@ -12,7 +12,8 @@ from app.repositories.category_repo import CategoryRepository
 from app.services.reputation_service import ReputationService
 
 def seed():
-    print("Recreating database tables...")
+    print("Dropping and recreating database tables...")
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     
     db = SessionLocal()
@@ -27,28 +28,71 @@ def seed():
         cat_tutor = db.query(Category).filter(Category.slug == "tutor").first()
         
         # 1. Create mock users
-        print("Seeding mock users...")
+        print("Seeding mock users with fixed OTPs...")
         users_data = [
             {
-                "id": "8e70325a-24ca-4f84-bb27-9b9331abbf92", # Keep consistent UUID
-                "name": "John Doe",
-                "phone_number": "+91 9999900000",
-                "email": "johndoe@example.com",
-                "profile_photo_url": "https://api.dicebear.com/7.x/avataaars/png?seed=John"
+                "id": "8e70325a-24ca-4f84-bb27-9b9331abbf92",
+                "name": "Md Majid",
+                "phone_number": "9948817509",
+                "email": "majid@example.com",
+                "profile_photo_url": "https://api.dicebear.com/7.x/avataaars/png?seed=Felix",
+                "fixed_otp": "551982"
             },
             {
                 "id": "2d94821a-12ca-3f84-cc27-8b9331abbf81",
-                "name": "Majid Contributor",
-                "phone_number": "+91 8888800000",
-                "email": "majid@example.com",
-                "profile_photo_url": "https://api.dicebear.com/7.x/avataaars/png?seed=Felix"
+                "name": "Latheef Esnomat",
+                "phone_number": "6303047522",
+                "email": "latheef@example.com",
+                "profile_photo_url": "https://api.dicebear.com/7.x/avataaars/png?seed=Aneka",
+                "fixed_otp": "820194"
             },
             {
                 "id": "7b80925c-34ca-4f84-aa27-7b9331abbf99",
-                "name": "Resident Tester",
-                "phone_number": "+91 7777700000",
-                "email": "tester@example.com",
-                "profile_photo_url": "https://api.dicebear.com/7.x/avataaars/png?seed=Luna"
+                "name": "Ishrath Begum",
+                "phone_number": "8096473987",
+                "email": "ishrath@example.com",
+                "profile_photo_url": "https://api.dicebear.com/7.x/avataaars/png?seed=Jack",
+                "fixed_otp": "367415"
+            },
+            {
+                "id": "user-4",
+                "name": "Md Rasheed",
+                "phone_number": "9666757551",
+                "email": "rasheed@example.com",
+                "profile_photo_url": "https://api.dicebear.com/7.x/avataaars/png?seed=Oliver",
+                "fixed_otp": "719843"
+            },
+            {
+                "id": "user-5",
+                "name": "Putnala Rajeshri",
+                "phone_number": "7674820934",
+                "email": "rajeshri@example.com",
+                "profile_photo_url": "https://api.dicebear.com/7.x/avataaars/png?seed=Bella",
+                "fixed_otp": "948271"
+            },
+            {
+                "id": "user-6",
+                "name": "Sai Ram",
+                "phone_number": "9392817168",
+                "email": "sairam@example.com",
+                "profile_photo_url": "https://api.dicebear.com/7.x/avataaars/png?seed=Adrian",
+                "fixed_otp": "423819"
+            },
+            {
+                "id": "user-7",
+                "name": "Pyarla Prashanth",
+                "phone_number": "7338133487",
+                "email": "prashanth@example.com",
+                "profile_photo_url": "https://api.dicebear.com/7.x/avataaars/png?seed=Luna",
+                "fixed_otp": "610752"
+            },
+            {
+                "id": "user-8",
+                "name": "Jeevan Mourya",
+                "phone_number": "9014244979",
+                "email": "jeevan@example.com",
+                "profile_photo_url": "https://api.dicebear.com/7.x/avataaars/png?seed=Felix",
+                "fixed_otp": "193856"
             }
         ]
         
@@ -61,18 +105,29 @@ def seed():
                     name=ud["name"],
                     phone_number=ud["phone_number"],
                     email=ud["email"],
-                    profile_photo_url=ud["profile_photo_url"]
+                    profile_photo_url=ud["profile_photo_url"],
+                    fixed_otp=ud["fixed_otp"]
                 )
                 db.add(u)
                 db.flush()
+                # Initialize Reputation Score
+                rep = ReputationScore(
+                    user_id=u.id,
+                    total_listings=0,
+                    avg_rating=0.00,
+                    total_reviews=0,
+                    points=0,
+                    reputation_level="Bronze Contributor"
+                )
+                db.add(rep)
                 users.append(u)
                 print(f"Created user: {ud['name']}")
             else:
                 users.append(existing)
                 
-        user_john = db.query(User).filter(User.phone_number == "+91 9999900000").first()
-        user_majid = db.query(User).filter(User.phone_number == "+91 8888800000").first()
-        user_tester = db.query(User).filter(User.phone_number == "+91 7777700000").first()
+        user_majid = db.query(User).filter(User.name == "Md Majid").first()
+        user_latheef = db.query(User).filter(User.name == "Latheef Esnomat").first()
+        user_ishrath = db.query(User).filter(User.name == "Ishrath Begum").first()
         
         # 2. Create mock listings
         print("Seeding mock listings...")
@@ -89,7 +144,7 @@ def seed():
                 "working_days": [1, 2, 3, 4, 5, 6],
                 "working_hours": "9:00 AM - 7:00 PM",
                 "description": "Certified industrial and residential electrician with 10 years of experience. Quick service for appliance repairs, home wiring, and generator setup.",
-                "contributor_id": user_john.id
+                "contributor_id": user_majid.id
             },
             {
                 "id": "listing-2",
@@ -103,7 +158,7 @@ def seed():
                 "working_days": [1, 2, 3, 4, 5],
                 "working_hours": "8:00 AM - 8:00 PM",
                 "description": "Specialist in fixing leakages, tap repairs, bathroom fittings, and drain cleaning. Arrives within 30 minutes in Madhapur area.",
-                "contributor_id": user_majid.id
+                "contributor_id": user_latheef.id
             },
             {
                 "id": "listing-3",
@@ -117,7 +172,7 @@ def seed():
                 "working_days": [1, 2, 3, 4, 5, 6],
                 "working_hours": "10:00 AM - 6:00 PM",
                 "description": "Car and bike mechanical repairs. Highly reliable engine diagnostics, brake changes, and general servicing at highly reasonable prices.",
-                "contributor_id": user_john.id
+                "contributor_id": user_majid.id
             }
         ]
         
@@ -143,10 +198,10 @@ def seed():
                 
         db.commit()
         
-        # 3. Recalculate reputation for john and majid
+        # 3. Recalculate reputation
         print("Recalculating reputation scores...")
-        ReputationService.recalculate_reputation(db, user_john.id)
         ReputationService.recalculate_reputation(db, user_majid.id)
+        ReputationService.recalculate_reputation(db, user_latheef.id)
         
         print("Database seeded successfully!")
         
