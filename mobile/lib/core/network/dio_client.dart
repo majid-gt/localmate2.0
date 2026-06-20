@@ -1,9 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 class DioClient {
   final Dio dio;
-  static String _baseUrl = "http://localhost:8000/api/v1"; // localhost matches ADB reverse forwarding rule
+  static String _baseUrl = kDebugMode
+      ? "http://localhost:8000/api/v1"
+      : "https://kcmkcmkcmkcmkcmkcmkcm.dpdns.org/api/v1";
 
   static void setBaseUrl(String url) {
     _baseUrl = url;
