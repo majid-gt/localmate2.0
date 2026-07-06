@@ -7,7 +7,7 @@ import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.database import SessionLocal, engine, Base
-from app.models.models import User, Listing, Category, ServiceReview, ContributorReview, ReputationScore
+from app.models.models import User, Listing, Category, ServiceReview, ContributorReview, ReputationScore, ListingImage
 from app.repositories.category_repo import CategoryRepository
 from app.services.reputation_service import ReputationService
 
@@ -144,7 +144,10 @@ def seed():
                 "working_days": [1, 2, 3, 4, 5, 6],
                 "working_hours": "9:00 AM - 7:00 PM",
                 "description": "Certified industrial and residential electrician with 10 years of experience. Quick service for appliance repairs, home wiring, and generator setup.",
-                "contributor_id": user_majid.id
+                "contributor_id": user_majid.id,
+                "image_urls": [
+                    "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500"
+                ]
             },
             {
                 "id": "listing-2",
@@ -158,7 +161,10 @@ def seed():
                 "working_days": [1, 2, 3, 4, 5],
                 "working_hours": "8:00 AM - 8:00 PM",
                 "description": "Specialist in fixing leakages, tap repairs, bathroom fittings, and drain cleaning. Arrives within 30 minutes in Madhapur area.",
-                "contributor_id": user_latheef.id
+                "contributor_id": user_latheef.id,
+                "image_urls": [
+                    "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=500"
+                ]
             },
             {
                 "id": "listing-3",
@@ -172,7 +178,10 @@ def seed():
                 "working_days": [1, 2, 3, 4, 5, 6],
                 "working_hours": "10:00 AM - 6:00 PM",
                 "description": "Car and bike mechanical repairs. Highly reliable engine diagnostics, brake changes, and general servicing at highly reasonable prices.",
-                "contributor_id": user_majid.id
+                "contributor_id": user_majid.id,
+                "image_urls": [
+                    "https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=500"
+                ]
             }
         ]
         
@@ -194,7 +203,18 @@ def seed():
                     contributor_id=ld["contributor_id"]
                 )
                 db.add(l)
-                print(f"Created listing: {ld['name']}")
+                db.flush()
+                
+                # Add images
+                for idx, url in enumerate(ld.get("image_urls", [])):
+                    img = ListingImage(
+                        id=str(uuid.uuid4()),
+                        listing_id=l.id,
+                        image_url=url,
+                        order_index=idx
+                    )
+                    db.add(img)
+                print(f"Created listing: {ld['name']} with {len(ld.get('image_urls', []))} images")
                 
         db.commit()
         

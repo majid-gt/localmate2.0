@@ -119,7 +119,8 @@ def search_listings(
     # Map results and inject calculated distances, ratings & open status
     output = []
     import datetime
-    now_dt = datetime.datetime.now()
+    from datetime import timezone, timedelta
+    now_dt = datetime.datetime.now(timezone(timedelta(hours=5, minutes=30)))
     for listing, dist in results:
         # We set the transient properties to populate the schemas
         listing.distance = round(dist, 2) if (latitude is not None and longitude is not None) else None
@@ -157,7 +158,8 @@ def get_listing_detail(id: str, db: Session = Depends(get_db)):
     listing.reviews_count = len(ratings)
     
     import datetime
-    now_dt = datetime.datetime.now()
+    from datetime import timezone, timedelta
+    now_dt = datetime.datetime.now(timezone(timedelta(hours=5, minutes=30)))
     days = listing.working_days
     if not isinstance(days, list):
         try:

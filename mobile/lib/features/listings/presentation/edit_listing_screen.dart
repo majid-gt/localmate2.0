@@ -21,8 +21,62 @@ class _EditListingScreenState extends State<EditListingScreen> {
   final TextEditingController _ownerNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _workingHoursController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+
+  TimeOfDay _openTime = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _closeTime = const TimeOfDay(hour: 18, minute: 0);
+
+  TimeOfDay _parseTimeString(String timeStr) {
+    try {
+      final cleanStr = timeStr.toLowerCase().replaceAll(" ", "");
+      final isPm = cleanStr.contains("pm");
+      final isAm = cleanStr.contains("am");
+      final numbersOnly = cleanStr.replaceAll("pm", "").replaceAll("am", "");
+      final timeParts = numbersOnly.split(":");
+      int hour = int.parse(timeParts[0]);
+      int minute = timeParts.length > 1 ? int.parse(timeParts[1]) : 0;
+      
+      if (isPm && hour != 12) {
+        hour += 12;
+      } else if (isAm && hour == 12) {
+        hour = 0;
+      }
+      return TimeOfDay(hour: hour, minute: minute);
+    } catch (_) {
+      return const TimeOfDay(hour: 9, minute: 0);
+    }
+  }
+
+  String _formatTime(TimeOfDay tod) {
+    final hour = tod.hourOfPeriod == 0 ? 12 : tod.hourOfPeriod;
+    final minute = tod.minute.toString().padLeft(2, '0');
+    final period = tod.period == DayPeriod.am ? 'AM' : 'PM';
+    return "$hour:$minute $period";
+  }
+
+  Future<void> _selectOpenTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _openTime,
+    );
+    if (picked != null) {
+      setState(() {
+        _openTime = picked;
+      });
+    }
+  }
+
+  Future<void> _selectCloseTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _closeTime,
+    );
+    if (picked != null) {
+      setState(() {
+        _closeTime = picked;
+      });
+    }
+  }
   final TextEditingController _latitudeController = TextEditingController();
   final TextEditingController _longitudeController = TextEditingController();
 
@@ -54,7 +108,18 @@ class _EditListingScreenState extends State<EditListingScreen> {
         _ownerNameController.text = listing['owner_name'] ?? '';
         _phoneController.text = listing['owner_phone'] ?? '';
         _addressController.text = listing['address'] ?? '';
-        _workingHoursController.text = listing['working_hours'] ?? '';
+        final String workingHours = listing['working_hours'] ?? '';
+        if (workingHours.isNotEmpty) {
+          try {
+            final parts = workingHours.split("-");
+            if (parts.length == 2) {
+              _openTime = _parseTimeString(parts[0].trim());
+              _closeTime = _parseTimeString(parts[1].trim());
+            }
+          } catch (e) {
+            debugPrint("Error parsing working hours: $e");
+          }
+        }
         _descriptionController.text = listing['description'] ?? '';
         _latitudeController.text = (listing['latitude'] ?? 17.3850).toString();
         _longitudeController.text = (listing['longitude'] ?? 78.4867).toString();
@@ -162,7 +227,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
         "longitude": lng,
         "address": _addressController.text.trim(),
         "working_days": _workingDays,
-        "working_hours": _workingHoursController.text.trim(),
+        "working_hours": "${_formatTime(_openTime)} - ${_formatTime(_closeTime)}",
         "description": _descriptionController.text.trim(),
       };
 
@@ -304,9 +369,101 @@ class _EditListingScreenState extends State<EditListingScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _workingHoursController,
-                      decoration: const InputDecoration(labelText: "Working Hours"),
+                    const Text(
+                      "Timings / Working Hours *",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: _selectOpenTime,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey.shade700
+                                      : Colors.grey.shade300,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Opening Time",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _openTime.format(context),
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Icon(Icons.access_time, color: Color(0xFFE11D48)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: InkWell(
+                            onTap: _selectCloseTime,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey.shade700
+                                      : Colors.grey.shade300,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Closing Time",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _closeTime.format(context),
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Icon(Icons.access_time, color: Color(0xFFE11D48)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

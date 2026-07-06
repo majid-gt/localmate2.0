@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     
     # Uploads
-    UPLOAD_DIR: str = "/opt/localmate/uploads" if os.name != "nt" else "./uploads"
+    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "/opt/localmate/uploads" if os.name != "nt" else "./uploads")
     
     class Config:
         case_sensitive = True

@@ -103,7 +103,7 @@ server {
     server_name $DOMAIN;
 
     # Serve uploaded media directly via Nginx
-    location /assets/uploads/ {
+    location /uploads/ {
         alias $UPLOAD_DIR/;
         expires 30d;
         add_header Cache-Control "public, no-transform";

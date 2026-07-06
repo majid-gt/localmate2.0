@@ -204,7 +204,8 @@ class ListingRepository:
             
             # Filter in Python
             import datetime
-            now_dt = datetime.datetime.now()
+            from datetime import timezone, timedelta
+            now_dt = datetime.datetime.now(timezone(timedelta(hours=5, minutes=30)))
             
             filtered_results = []
             for listing in results:
